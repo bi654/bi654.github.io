@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Recursive Roulette PRO</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -45,25 +45,28 @@
             }
             #sidebar {
                 width: 100% !important;
-                height: 50%;
+                height: 70% !important; /* スマホ時は少し高く設定 */
                 order: 2;
                 border-left: none !important;
                 border-top: 1px solid var(--border);
-                transition: transform 0.3s ease;
+                transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                position: fixed !important;
+                bottom: 0;
+                left: 0;
+                box-shadow: 0 -10px 30px rgba(0,0,0,0.5);
             }
             #sidebar.collapsed {
                 transform: translateY(100%);
-                position: absolute;
-                bottom: 0;
             }
             #main-view {
                 flex: 1;
                 order: 1;
                 padding: 10px;
+                padding-bottom: 80px; /* 下部ボタン用のスペース */
             }
             .canvas-container {
-                transform: scale(0.7);
-                margin: 0 !important;
+                transform: scale(0.8);
+                margin: -20px 0 !important;
             }
             .logo-area h1 {
                 font-size: 1.8rem !important;
@@ -74,12 +77,12 @@
         #sidebar {
             width: 400px;
             background: rgba(36, 39, 58, 0.98);
-            backdrop-filter: blur(10px);
+            backdrop-filter: blur(15px);
             border-left: 1px solid var(--border);
             display: flex;
             flex-direction: column;
             position: relative;
-            z-index: 50;
+            z-index: 150;
         }
 
         .sidebar-header {
@@ -88,13 +91,16 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            background: var(--card);
+            flex-shrink: 0;
         }
 
         .editor-container {
             flex: 1;
             overflow-y: auto;
             padding: 15px;
-            -webkit-overflow-scrolling: touch;
+            padding-bottom: 40px; /* コンテンツ末尾の余白 */
+            -webkit-overflow-scrolling: touch; /* iOSスクロール改善 */
         }
 
         .level-card {
@@ -194,7 +200,6 @@
         .canvas-container {
             position: relative;
             margin: 20px 0;
-            transition: transform 0.3s ease;
         }
 
         .pin-wrapper {
@@ -215,7 +220,8 @@
 
         #wheel-canvas {
             max-width: 90vw;
-            max-height: 90vw;
+            max-height: 50vh; /* 高さ制限を追加 */
+            width: auto;
             height: auto;
         }
 
@@ -226,6 +232,7 @@
             width: 100%;
             align-items: center;
             padding-bottom: 20px;
+            z-index: 20;
         }
 
         .btn-spin {
@@ -247,13 +254,15 @@
             position: absolute;
             bottom: 20px;
             right: 20px;
-            background: var(--card);
+            background: var(--accent);
             color: white;
-            border: 1px solid var(--border);
-            padding: 10px 15px;
-            border-radius: 10px;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 30px;
             z-index: 60;
-            font-size: 0.8rem;
+            font-size: 0.9rem;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         }
 
         @media (max-width: 900px) {
@@ -264,12 +273,12 @@
         #modal-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.9);
+            background: rgba(0, 0, 0, 0.92);
             backdrop-filter: blur(8px);
             display: none;
             justify-content: center;
             align-items: center;
-            z-index: 200;
+            z-index: 300;
             padding: 20px;
         }
 
@@ -285,8 +294,8 @@
 
         .judge-screen {
             background: #000;
-            height: 200px;
-            width: 150px;
+            height: 180px;
+            width: 140px;
             border-radius: 12px;
             margin: 15px auto;
             position: relative;
@@ -303,6 +312,14 @@
             background: #fff;
             box-shadow: 0 0 15px #fff;
             z-index: 10;
+        }
+
+        .footer-actions {
+            padding: 15px 20px;
+            padding-bottom: calc(15px + env(safe-area-inset-bottom));
+            background: var(--card);
+            border-top: 1px solid var(--border);
+            flex-shrink: 0;
         }
 
         .hidden { display: none; }
@@ -328,20 +345,22 @@
         <button onclick="App.goBack()" id="back-btn" style="background:none; border:1px solid var(--border); color:var(--text-dim); padding:8px 25px; border-radius:30px; font-size:0.8rem;" disabled>BACK</button>
     </div>
 
-    <button class="toggle-editor-btn" onclick="App.toggleSidebar()">設定を表示</button>
+    <button class="toggle-editor-btn" onclick="App.toggleSidebar()">設定を編集</button>
 </div>
 
 <div id="sidebar">
     <div class="sidebar-header">
         <h3 style="margin:0; font-size:0.9rem; color:var(--text-dim)">ルーレット編集</h3>
-        <button onclick="App.toggleSidebar()" style="background:none; border:none; color:var(--accent); font-weight:700;" class="toggle-editor-btn-inner">閉じる</button>
+        <button onclick="App.toggleSidebar()" style="background:none; border:none; color:var(--accent); font-weight:700; padding:10px;">閉じる</button>
     </div>
-    <div class="editor-container" id="editor-list"></div>
-    <div style="padding: 15px; border-top: 1px solid var(--border); background: var(--card);">
-        <button onclick="App.addLevel()" style="width:100%; padding:12px; border-radius:8px; background:var(--accent); color:white; border:none; font-weight:900; margin-bottom:10px;">+ 階層を追加</button>
+    <div class="editor-container" id="editor-list">
+        <!-- JSで階層カードが挿入される -->
+    </div>
+    <div class="footer-actions">
+        <button onclick="App.addLevel()" style="width:100%; padding:14px; border-radius:12px; background:var(--accent); color:white; border:none; font-weight:900; margin-bottom:10px; cursor:pointer;">+ 階層を追加</button>
         <div style="display: flex; gap: 8px;">
-            <button onclick="App.exportJSON()" style="flex:1; font-size:10px; padding:8px; background:var(--input-bg); color:var(--text-dim); border:1px solid var(--border);">保存</button>
-            <button onclick="App.importJSON()" style="flex:1; font-size:10px; padding:8px; background:var(--input-bg); color:var(--text-dim); border:1px solid var(--border);">読込</button>
+            <button onclick="App.exportJSON()" style="flex:1; font-size:11px; padding:10px; background:var(--input-bg); color:var(--text-dim); border:1px solid var(--border); border-radius:8px;">保存</button>
+            <button onclick="App.importJSON()" style="flex:1; font-size:11px; padding:10px; background:var(--input-bg); color:var(--text-dim); border:1px solid var(--border); border-radius:8px;">読込</button>
         </div>
     </div>
 </div>
@@ -354,15 +373,15 @@
         <div id="judge-ui" class="hidden">
             <p style="font-size:0.8rem; color:var(--text-dim); margin-bottom:10px;">連鎖チャンス！</p>
             <div class="judge-screen">
-                <div class="judge-zone zone-top" id="ui-success-label" style="flex:1; background:linear-gradient(#4f46e5,#312e81); display:flex; align-items:center; justify-content:center;">成功</div>
-                <div class="judge-zone zone-bottom" id="ui-fail-label" style="flex:1; background:linear-gradient(#1e1b4b,#000); display:flex; align-items:center; justify-content:center;">失敗</div>
+                <div class="judge-zone zone-top" id="ui-success-label" style="flex:1; background:linear-gradient(#4f46e5,#312e81); display:flex; align-items:center; justify-content:center; font-weight:bold; color:white;">成功</div>
+                <div class="judge-zone zone-bottom" id="ui-fail-label" style="flex:1; background:linear-gradient(#1e1b4b,#000); display:flex; align-items:center; justify-content:center; font-weight:bold; color:white;">失敗</div>
                 <div id="needle-v"></div>
             </div>
             <button id="judge-start-btn" class="btn-spin" style="font-size:1rem; width:100%; padding:12px; margin-top:10px;" onclick="App.runJudge()">判定を開始</button>
         </div>
 
         <div id="final-ui" class="hidden">
-            <button class="btn-close" style="width:100%; padding:12px; background:var(--border); color:white; border:none; border-radius:12px; margin-top:10px;" onclick="App.closeModal()">閉じる</button>
+            <button class="btn-close" style="width:100%; padding:14px; background:var(--border); color:white; border:none; border-radius:12px; margin-top:10px; font-weight:bold;" onclick="App.closeModal()">閉じる</button>
         </div>
     </div>
 </div>
@@ -389,31 +408,30 @@ const App = {
         current: "main",
         stack: [],
         rotation: 0,
-        isSpinning: false,
-        isSidebarOpen: window.innerWidth > 900
+        isSpinning: false
     },
 
     init() {
         this.canvas = document.getElementById('wheel-canvas');
         this.ctx = this.canvas.getContext('2d');
-        const saved = localStorage.getItem("roulette_mobile_v1");
+        const saved = localStorage.getItem("roulette_mobile_v2");
         if(saved) this.state.levels = JSON.parse(saved);
         
         this.renderEditor();
         this.updateUI();
         this.draw();
         
+        // スマホなら初期状態でサイドバーを閉じる
         if(window.innerWidth <= 900) {
             document.getElementById('sidebar').classList.add('collapsed');
         }
     },
 
-    save() { localStorage.setItem("roulette_mobile_v1", JSON.stringify(this.state.levels)); },
+    save() { localStorage.setItem("roulette_mobile_v2", JSON.stringify(this.state.levels)); },
 
     toggleSidebar() {
         const sb = document.getElementById('sidebar');
         sb.classList.toggle('collapsed');
-        this.state.isSidebarOpen = !sb.classList.contains('collapsed');
     },
 
     updateUI() {
@@ -578,27 +596,30 @@ const App = {
             card.innerHTML = `
                 <div class="level-title-row">
                     <input type="text" value="${lv.name}" onchange="App.editLv('${id}', this.value)">
-                    ${id !== 'main' ? `<button onclick="App.delLv('${id}')" style="background:none; border:none; color:var(--pink);">×</button>` : ''}
+                    ${id !== 'main' ? `<button onclick="App.delLv('${id}')" style="background:none; border:none; color:var(--pink); font-size:1.5rem; padding:0 5px;">×</button>` : ''}
                 </div>
                 ${lv.segments.map((s, i) => `
                     <div class="segment-card">
                         <div class="seg-main-row">
-                            <input type="color" value="${s.color}" onchange="App.editSeg('${id}', ${i}, 'color', this.value)" style="width:25px;height:25px;border:none;background:none;">
-                            <input type="text" value="${s.label}" onchange="App.editSeg('${id}', ${i}, 'label', this.value)" style="flex:1">
-                            <input type="checkbox" ${s.isSub ? 'checked' : ''} onchange="App.editSeg('${id}', ${i}, 'isSub', this.checked)">
-                            <button onclick="App.delSeg('${id}', ${i})" style="color:var(--pink); border:none; background:none;">×</button>
+                            <input type="color" value="${s.color}" onchange="App.editSeg('${id}', ${i}, 'color', this.value)" style="width:30px;height:30px;border:none;background:none;flex-shrink:0;">
+                            <input type="text" value="${s.label}" onchange="App.editSeg('${id}', ${i}, 'label', this.value)" style="flex:1; min-width:0;">
+                            <div style="display:flex; flex-direction:column; align-items:center; gap:2px;">
+                                <span style="font-size:10px; color:var(--text-dim)">連鎖</span>
+                                <input type="checkbox" ${s.isSub ? 'checked' : ''} onchange="App.editSeg('${id}', ${i}, 'isSub', this.checked)" style="width:18px;height:18px;">
+                            </div>
+                            <button onclick="App.delSeg('${id}', ${i})" style="color:var(--pink); border:none; background:none; font-size:1.2rem; padding:5px;">×</button>
                         </div>
                         ${s.isSub ? `
                             <div class="sub-config-box">
                                 <div class="config-inputs">
-                                    <input type="text" placeholder="成功時ラベル" value="${s.successLabel || ''}" onchange="App.editSeg('${id}', ${i}, 'successLabel', this.value)">
-                                    <select onchange="App.editSeg('${id}', ${i}, 'targetId', this.value)">
+                                    <input type="text" placeholder="成功時表示" value="${s.successLabel || ''}" onchange="App.editSeg('${id}', ${i}, 'successLabel', this.value)" style="flex:1">
+                                    <select onchange="App.editSeg('${id}', ${i}, 'targetId', this.value)" style="flex:1">
                                         ${lvs.map(([lid, ll]) => `<option value="${lid}" ${s.targetId === lid ? 'selected' : ''}>${ll.name}へ</option>`).join('')}
                                     </select>
                                 </div>
                                 <div class="config-inputs">
-                                    <input type="text" placeholder="失敗時ラベル" value="${s.failLabel || ''}" onchange="App.editSeg('${id}', ${i}, 'failLabel', this.value)">
-                                    <select onchange="App.editSeg('${id}', ${i}, 'failTargetId', this.value)">
+                                    <input type="text" placeholder="失敗時表示" value="${s.failLabel || ''}" onchange="App.editSeg('${id}', ${i}, 'failLabel', this.value)" style="flex:1">
+                                    <select onchange="App.editSeg('${id}', ${i}, 'failTargetId', this.value)" style="flex:1">
                                         <option value="">(移動なし)</option>
                                         ${lvs.map(([lid, ll]) => `<option value="${lid}" ${s.failTargetId === lid ? 'selected' : ''}>${ll.name}へ</option>`).join('')}
                                     </select>
@@ -607,7 +628,7 @@ const App = {
                         ` : ''}
                     </div>
                 `).join('')}
-                <button onclick="App.addSeg('${id}')" style="width:100%; margin-top:10px; background:transparent; border:1px dashed var(--border); color:var(--text-dim); padding:6px; font-size:0.7rem;">+ 項目追加</button>
+                <button onclick="App.addSeg('${id}')" style="width:100%; margin-top:12px; background:transparent; border:1px dashed var(--border); color:var(--text-dim); padding:10px; border-radius:8px; font-size:0.8rem;">+ 項目を追加</button>
             `;
             list.appendChild(card);
         });
@@ -621,7 +642,7 @@ const App = {
     delSeg(id, i) { this.state.levels[id].segments.splice(i, 1); this.renderEditor(); this.draw(); this.save(); },
     exportJSON() {
         const b = new Blob([JSON.stringify(this.state.levels, null, 2)], {type:"application/json"});
-        const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = "roulette_mobile.json"; a.click();
+        const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = "roulette_config.json"; a.click();
     },
     importJSON() {
         const i = document.createElement('input'); i.type = 'file';
