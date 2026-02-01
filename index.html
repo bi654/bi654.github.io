@@ -19,6 +19,7 @@
             --pink: #ff007f;
             --input-bg: #0f111a;
             --danger: #ef4444;
+            --success: #10b981;
         }
 
         * {
@@ -34,7 +35,6 @@
             font-family: 'Outfit', 'Noto Sans JP', sans-serif;
             display: flex;
             height: 100vh;
-            height: -webkit-fill-available;
             overflow: hidden;
             flex-direction: row;
         }
@@ -55,6 +55,7 @@
                 bottom: 0;
                 left: 0;
                 box-shadow: 0 -10px 30px rgba(0,0,0,0.5);
+                z-index: 100;
             }
             #sidebar.collapsed {
                 transform: translateY(100%);
@@ -62,12 +63,7 @@
             #main-view {
                 flex: 1;
                 order: 1;
-                padding: 10px;
                 padding-bottom: 80px;
-            }
-            .canvas-container {
-                transform: scale(0.8);
-                margin: -20px 0 !important;
             }
         }
 
@@ -79,8 +75,7 @@
             border-left: 1px solid var(--border);
             display: flex;
             flex-direction: column;
-            position: relative;
-            z-index: 150;
+            height: 100vh;
         }
 
         .sidebar-header {
@@ -96,16 +91,27 @@
         .editor-container {
             flex: 1;
             overflow-y: auto;
+            overflow-x: hidden;
             padding: 15px;
-            padding-bottom: 40px;
             -webkit-overflow-scrolling: touch;
+        }
+
+        .editor-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        .editor-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .editor-container::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 10px;
         }
 
         .level-card {
             background: rgba(15, 17, 26, 0.4);
             border-radius: 12px;
             padding: 12px;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
             border: 1px solid var(--border);
         }
 
@@ -179,11 +185,20 @@
             overflow: hidden;
         }
 
-        .logo-area {
+        .top-nav {
             position: absolute;
             top: 20px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            z-index: 100;
+        }
+
+        .logo-area {
             text-align: center;
-            z-index: 10;
+            flex: 1;
         }
 
         .logo-area h1 {
@@ -193,6 +208,18 @@
             letter-spacing: 2px;
             color: #fff;
             text-shadow: 0 0 20px var(--accent-glow);
+        }
+
+        .history-btn {
+            background: rgba(15, 17, 26, 0.6);
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            cursor: pointer;
+            backdrop-filter: blur(5px);
         }
 
         .canvas-container {
@@ -245,7 +272,10 @@
             cursor: pointer;
             width: 80%;
             max-width: 300px;
+            transition: transform 0.1s;
         }
+
+        .btn-spin:active { transform: scale(0.96); }
 
         .toggle-editor-btn {
             display: none;
@@ -275,8 +305,8 @@
             flex-shrink: 0;
         }
 
-        /* Modal */
-        #modal-overlay {
+        /* Modal / Alert UI */
+        #modal-overlay, #alert-overlay, #history-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0, 0, 0, 0.92);
@@ -284,11 +314,11 @@
             display: none;
             justify-content: center;
             align-items: center;
-            z-index: 300;
+            z-index: 500;
             padding: 20px;
         }
 
-        .modal-card {
+        .modal-card, .alert-card, .history-card {
             background: var(--card);
             padding: 25px;
             border-radius: 24px;
@@ -296,7 +326,30 @@
             text-align: center;
             width: 100%;
             max-width: 360px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
         }
+
+        .history-list {
+            flex: 1;
+            overflow-y: auto;
+            margin: 15px 0;
+            text-align: left;
+        }
+
+        .history-item {
+            padding: 10px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+        }
+
+        .history-item .time { color: var(--text-dim); font-size: 0.7rem; }
+        .history-item .label { font-weight: bold; }
+        .history-item .meta { font-size: 0.65rem; color: var(--text-dim); }
 
         .judge-screen {
             background: #000;
@@ -322,36 +375,24 @@
 
         .hidden { display: none; }
 
-        /* Custom Alert Dialog */
-        #alert-overlay {
-            position: fixed;
-            top:0; left:0; width:100%; height:100%;
-            background:rgba(0,0,0,0.8);
-            z-index:400;
-            display:none;
-            align-items:center;
-            justify-content:center;
-            padding:20px;
-        }
-        .alert-card {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 20px;
-            padding: 25px;
-            max-width: 320px;
-            width: 100%;
-            text-align: center;
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
     </style>
 </head>
 <body>
 
 <div id="main-view">
-    <div class="logo-area">
-        <h1>ROULETTE</h1>
-        <div style="font-size: 0.75rem; color: var(--text-dim); margin-top: 5px;">
-            <span id="display-lv-name">メイン</span>
+    <div class="top-nav">
+        <button class="history-btn" onclick="App.toggleHistory()">HISTORY</button>
+        <div class="logo-area">
+            <h1>ROULETTE</h1>
+            <div style="font-size: 0.75rem; color: var(--text-dim); margin-top: 5px;">
+                <span id="display-lv-name">メイン</span>
+            </div>
         </div>
+        <div style="width: 60px;"></div>
     </div>
 
     <div class="canvas-container">
@@ -364,7 +405,7 @@
         <button onclick="App.goBack()" id="back-btn" style="background:none; border:1px solid var(--border); color:var(--text-dim); padding:8px 25px; border-radius:30px; font-size:0.8rem;" disabled>BACK</button>
     </div>
 
-    <button class="toggle-editor-btn" onclick="App.toggleSidebar()">設定を編集</button>
+    <button class="toggle-editor-btn" onclick="App.toggleSidebar()">設定を開く</button>
 </div>
 
 <div id="sidebar">
@@ -372,7 +413,9 @@
         <h3 style="margin:0; font-size:0.9rem; color:var(--text-dim)">ルーレット編集</h3>
         <button onclick="App.toggleSidebar()" style="background:none; border:none; color:var(--accent); font-weight:700; padding:10px;">閉じる</button>
     </div>
+    
     <div class="editor-container" id="editor-list"></div>
+
     <div class="footer-actions">
         <button onclick="App.addLevel()" style="width:100%; padding:14px; border-radius:12px; background:var(--accent); color:white; border:none; font-weight:900; margin-bottom:12px; cursor:pointer;">+ 階層を追加</button>
         
@@ -385,7 +428,14 @@
     </div>
 </div>
 
-<!-- Modal / Dialogs -->
+<div id="history-overlay">
+    <div class="history-card">
+        <h3 style="margin:0 0 15px 0;">履歴</h3>
+        <div class="history-list" id="history-items"></div>
+        <button style="width:100%; padding:14px; background:var(--border); color:white; border:none; border-radius:12px; font-weight:bold; cursor:pointer;" onclick="App.toggleHistory()">閉じる</button>
+    </div>
+</div>
+
 <div id="modal-overlay">
     <div class="modal-card">
         <div style="font-size:0.7rem; color:var(--text-dim); letter-spacing:2px;">RESULT</div>
@@ -394,26 +444,26 @@
         <div id="judge-ui" class="hidden">
             <p style="font-size:0.8rem; color:var(--text-dim); margin-bottom:10px;">連鎖チャンス！</p>
             <div class="judge-screen">
-                <div class="judge-zone zone-top" id="ui-success-label" style="flex:1; background:linear-gradient(#4f46e5,#312e81); display:flex; align-items:center; justify-content:center; font-weight:bold; color:white;">成功</div>
-                <div class="judge-zone zone-bottom" id="ui-fail-label" style="flex:1; background:linear-gradient(#1e1b4b,#000); display:flex; align-items:center; justify-content:center; font-weight:bold; color:white;">失敗</div>
+                <div class="judge-zone" id="ui-success-label" style="flex:1; background:linear-gradient(#4f46e5,#312e81); display:flex; align-items:center; justify-content:center; font-weight:bold; color:white;">成功</div>
+                <div class="judge-zone" id="ui-fail-label" style="flex:1; background:linear-gradient(#1e1b4b,#000); display:flex; align-items:center; justify-content:center; font-weight:bold; color:white;">失敗</div>
                 <div id="needle-v"></div>
             </div>
             <button id="judge-start-btn" class="btn-spin" style="font-size:1rem; width:100%; padding:12px; margin-top:10px;" onclick="App.runJudge()">判定を開始</button>
         </div>
 
         <div id="final-ui" class="hidden">
-            <button class="btn-close" style="width:100%; padding:14px; background:var(--border); color:white; border:none; border-radius:12px; margin-top:10px; font-weight:bold;" onclick="App.closeModal()">閉じる</button>
+            <button style="width:100%; padding:14px; background:var(--border); color:white; border:none; border-radius:12px; margin-top:10px; font-weight:bold; cursor:pointer;" onclick="App.closeModal()">閉じる</button>
         </div>
     </div>
 </div>
 
 <div id="alert-overlay">
     <div class="alert-card">
-        <h4 id="alert-title" style="margin-top:0;">確認</h4>
+        <h4 style="margin-top:0;">確認</h4>
         <p id="alert-msg" style="font-size:0.9rem; color:var(--text-dim); line-height:1.5;"></p>
         <div style="display:flex; gap:10px; margin-top:20px;">
-            <button id="alert-cancel" style="flex:1; padding:12px; border-radius:10px; background:var(--border); border:none; color:white;">キャンセル</button>
-            <button id="alert-ok" style="flex:1; padding:12px; border-radius:10px; background:var(--danger); border:none; color:white; font-weight:bold;">実行する</button>
+            <button id="alert-cancel" style="flex:1; padding:12px; border-radius:10px; background:var(--border); border:none; color:white; cursor:pointer;">キャンセル</button>
+            <button id="alert-ok" style="flex:1; padding:12px; border-radius:10px; background:var(--danger); border:none; color:white; font-weight:bold; cursor:pointer;">実行する</button>
         </div>
     </div>
 </div>
@@ -424,7 +474,7 @@ const DEFAULT_LEVELS = {
         name: "メインルーレット",
         segments: [
             { label: "RUSH突入", isSub: true, color: "#e11d48", targetId: "sub1", failTargetId: "main", successLabel: "突入！", failLabel: "ハズレ" },
-            { label: "通常時", isSub: false, color: "#334155" }
+            { label: "ハズレ", isSub: false, color: "#334155" }
         ]
     },
     "sub1": {
@@ -442,14 +492,22 @@ const App = {
         current: "main",
         stack: [],
         rotation: 0,
-        isSpinning: false
+        isSpinning: false,
+        history: []
     },
 
     init() {
         this.canvas = document.getElementById('wheel-canvas');
         this.ctx = this.canvas.getContext('2d');
-        const saved = localStorage.getItem("roulette_mobile_v3");
-        if(saved) this.state.levels = JSON.parse(saved);
+        
+        const saved = localStorage.getItem("roulette_pro_v5");
+        if(saved) {
+            try { 
+                const data = JSON.parse(saved);
+                this.state.levels = data.levels || this.state.levels;
+                this.state.history = data.history || [];
+            } catch(e) {}
+        }
         
         this.renderEditor();
         this.updateUI();
@@ -460,13 +518,19 @@ const App = {
         }
     },
 
-    save() { localStorage.setItem("roulette_mobile_v3", JSON.stringify(this.state.levels)); },
+    save() { 
+        localStorage.setItem("roulette_pro_v5", JSON.stringify({
+            levels: this.state.levels,
+            history: this.state.history
+        })); 
+    },
 
     confirmReset() {
-        this.showAlert("全ての設定を削除し、初期状態に戻しますか？作成した階層データは完全に失われます。", () => {
+        this.showAlert("全ての設定と履歴を削除し、初期状態に戻しますか？", () => {
             this.state.levels = JSON.parse(JSON.stringify(DEFAULT_LEVELS));
             this.state.current = "main";
             this.state.stack = [];
+            this.state.history = [];
             this.save();
             this.renderEditor();
             this.updateUI();
@@ -479,17 +543,37 @@ const App = {
         const msgEl = document.getElementById('alert-msg');
         const okBtn = document.getElementById('alert-ok');
         const cancelBtn = document.getElementById('alert-cancel');
-        
         msgEl.textContent = msg;
         overlay.style.display = 'flex';
-        
-        const close = () => overlay.style.display = 'none';
-        okBtn.onclick = () => { onOk(); close(); };
-        cancelBtn.onclick = close;
+        okBtn.onclick = () => { onOk(); overlay.style.display = 'none'; };
+        cancelBtn.onclick = () => { overlay.style.display = 'none'; };
     },
 
     toggleSidebar() {
         document.getElementById('sidebar').classList.toggle('collapsed');
+    },
+
+    toggleHistory() {
+        const overlay = document.getElementById('history-overlay');
+        const isOpening = overlay.style.display !== 'flex';
+        overlay.style.display = isOpening ? 'flex' : 'none';
+        
+        if(isOpening) {
+            const list = document.getElementById('history-items');
+            list.innerHTML = this.state.history.length === 0 ? '<p style="color:var(--text-dim); text-align:center;">履歴はありません</p>' : '';
+            this.state.history.slice().reverse().forEach(item => {
+                const div = document.createElement('div');
+                div.className = "history-item";
+                div.innerHTML = `
+                    <div style="flex:1">
+                        <div class="label" style="color:${item.color}">${item.label}</div>
+                        <div class="meta">${item.level}</div>
+                    </div>
+                    <div class="time">${item.time}</div>
+                `;
+                list.appendChild(div);
+            });
+        }
     },
 
     updateUI() {
@@ -530,7 +614,7 @@ const App = {
         this.ctx.arc(cx, cy, 25, 0, Math.PI*2);
         this.ctx.fillStyle = "#1a1c2c";
         this.ctx.fill();
-        this.ctx.strokeStyle = varProp('--border');
+        this.ctx.strokeStyle = "#333750";
         this.ctx.stroke();
     },
 
@@ -539,14 +623,14 @@ const App = {
         this.state.isSpinning = true;
         document.getElementById('spin-btn').disabled = true;
 
-        const duration = 3500;
+        const duration = 4000;
         const start = performance.now();
         const startRot = this.state.rotation;
-        const totalRot = startRot + Math.PI * 12 + Math.random() * Math.PI * 4;
+        const totalRot = startRot + Math.PI * 15 + Math.random() * Math.PI * 5;
 
         const animate = (time) => {
             const progress = Math.min((time - start) / duration, 1);
-            const ease = 1 - Math.pow(1 - progress, 4);
+            const ease = 1 - Math.pow(1 - progress, 5);
             this.state.rotation = startRot + (totalRot - startRot) * ease;
             this.draw();
             if(progress < 1) requestAnimationFrame(animate);
@@ -566,7 +650,21 @@ const App = {
         const result = lv.segments[idx];
 
         this.activeResult = result;
+        
+        // 通常のセグメントが当たった場合のみ履歴に追加（連鎖の場合は判定後に履歴追加）
+        if(!result.isSub) {
+            this.addHistory(result.label, result.color, lv.name);
+        }
+        
         this.showModal(result);
+    },
+
+    addHistory(label, color, levelName) {
+        const now = new Date();
+        const time = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
+        this.state.history.push({ label, color, level: levelName, time });
+        if(this.state.history.length > 50) this.state.history.shift();
+        this.save();
     },
 
     showModal(res) {
@@ -574,12 +672,12 @@ const App = {
         document.getElementById('res-label').textContent = res.label;
         document.getElementById('judge-ui').classList.add('hidden');
         document.getElementById('final-ui').classList.add('hidden');
-        document.getElementById('judge-start-btn').disabled = false;
 
         if(res.isSub) {
             document.getElementById('judge-ui').classList.remove('hidden');
             document.getElementById('ui-success-label').textContent = res.successLabel || "成功";
             document.getElementById('ui-fail-label').textContent = res.failLabel || "失敗";
+            document.getElementById('judge-start-btn').disabled = false;
             document.getElementById('needle-v').style.top = "50%";
         } else {
             document.getElementById('final-ui').classList.remove('hidden');
@@ -591,19 +689,16 @@ const App = {
         const startBtn = document.getElementById('judge-start-btn');
         startBtn.disabled = true;
         
-        const duration = 5000;
+        const duration = 4000;
         const start = performance.now();
         const success = Math.random() > 0.6;
 
         const anim = (time) => {
             const elapsed = time - start;
             const p = Math.min(elapsed / duration, 1);
-            const minSpeed = 1.2;
-            const maxSpeed = 6.0;
-            const currentSpeed = minSpeed + (p * (maxSpeed - minSpeed)); 
-            
+            const speed = 1.5 + (p * 5); 
             const amplitude = 35;
-            const pos = 50 + Math.sin(elapsed / 1000 * currentSpeed * Math.PI) * amplitude;
+            const pos = 50 + Math.sin(elapsed / 1000 * speed * Math.PI) * amplitude;
             needle.style.top = (p < 1 ? pos : (success ? 25 : 75)) + "%";
             
             if(p < 1) requestAnimationFrame(anim);
@@ -617,6 +712,9 @@ const App = {
         const label = success ? (res.successLabel || "成功") : (res.failLabel || "失敗");
         document.getElementById('res-label').textContent = label + "！";
         
+        // 判定結果も履歴に残す
+        this.addHistory(`${res.label} ➔ ${label}`, success ? "#10b981" : "#ef4444", this.state.levels[this.state.current].name);
+
         setTimeout(() => {
             if(success) {
                 this.state.stack.push(this.state.current);
@@ -628,7 +726,7 @@ const App = {
             this.closeModal();
             this.updateUI();
             this.draw();
-        }, 1200);
+        }, 1500);
     },
 
     closeModal() { document.getElementById('modal-overlay').style.display = 'none'; },
@@ -652,7 +750,7 @@ const App = {
             card.innerHTML = `
                 <div class="level-title-row">
                     <input type="text" value="${lv.name}" onchange="App.editLv('${id}', this.value)">
-                    ${id !== 'main' ? `<button onclick="App.delLv('${id}')" style="background:none; border:none; color:var(--pink); font-size:1.5rem;">×</button>` : ''}
+                    ${id !== 'main' ? `<button onclick="App.delLv('${id}')" style="background:none; border:none; color:var(--pink); font-size:1.5rem; cursor:pointer;">×</button>` : ''}
                 </div>
                 ${lv.segments.map((s, i) => `
                     <div class="segment-card">
@@ -663,7 +761,7 @@ const App = {
                                 <span style="font-size:9px; color:var(--text-dim)">連鎖</span>
                                 <input type="checkbox" ${s.isSub ? 'checked' : ''} onchange="App.editSeg('${id}', ${i}, 'isSub', this.checked)">
                             </div>
-                            <button onclick="App.delSeg('${id}', ${i})" style="color:var(--pink); border:none; background:none; font-size:1.2rem;">×</button>
+                            <button onclick="App.delSeg('${id}', ${i})" style="color:var(--pink); border:none; background:none; font-size:1.2rem; cursor:pointer;">×</button>
                         </div>
                         ${s.isSub ? `
                             <div class="sub-config-box">
@@ -684,7 +782,7 @@ const App = {
                         ` : ''}
                     </div>
                 `).join('')}
-                <button onclick="App.addSeg('${id}')" style="width:100%; margin-top:12px; background:transparent; border:1px dashed var(--border); color:var(--text-dim); padding:10px; border-radius:8px; font-size:0.8rem;">+ 項目を追加</button>
+                <button onclick="App.addSeg('${id}')" style="width:100%; margin-top:12px; background:transparent; border:1px dashed var(--border); color:var(--text-dim); padding:10px; border-radius:8px; font-size:0.8rem; cursor:pointer;">+ 項目を追加</button>
             `;
             list.appendChild(card);
         });
@@ -692,27 +790,37 @@ const App = {
 
     editLv(id, v) { this.state.levels[id].name = v; this.save(); this.updateUI(); },
     addLevel() { const id = "lv"+Date.now(); this.state.levels[id] = { name: "新階層", segments: [{ label: "NEW", color: "#6366f1", isSub: false }] }; this.renderEditor(); this.save(); },
-    delLv(id) { delete this.state.levels[id]; this.renderEditor(); this.save(); },
+    delLv(id) { 
+        if(this.state.current === id) this.state.current = "main";
+        delete this.state.levels[id]; 
+        this.renderEditor(); this.save(); 
+    },
     editSeg(id, i, k, v) { this.state.levels[id].segments[i][k] = v; this.save(); this.renderEditor(); this.draw(); },
     addSeg(id) { this.state.levels[id].segments.push({ label: "ITEM", color: "#444", isSub: false }); this.renderEditor(); this.draw(); this.save(); },
     delSeg(id, i) { this.state.levels[id].segments.splice(i, 1); this.renderEditor(); this.draw(); this.save(); },
+    
     exportJSON() {
         const b = new Blob([JSON.stringify(this.state.levels, null, 2)], {type:"application/json"});
-        const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = "roulette_config.json"; a.click();
+        const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = "roulette_pro.json"; a.click();
     },
     importJSON() {
         const i = document.createElement('input'); i.type = 'file';
         i.onchange = (e) => {
             const f = e.target.files[0]; if(!f) return;
             const r = new FileReader();
-            r.onload = (re) => { this.state.levels = JSON.parse(re.target.result); this.renderEditor(); this.draw(); this.save(); this.updateUI(); };
+            r.onload = (re) => { 
+                try {
+                    const data = JSON.parse(re.target.result); 
+                    this.state.levels = data;
+                    this.renderEditor(); this.draw(); this.save(); this.updateUI(); 
+                } catch(err) { console.error("Invalid JSON"); }
+            };
             r.readAsText(f);
         };
         i.click();
     }
 };
 
-function varProp(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
 window.onload = () => App.init();
 </script>
 </body>
